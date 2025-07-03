@@ -93,8 +93,7 @@ function show_menu() {
 	echo -e " ${BLUE}[9]${NC} ${ORANGE}•${NC} ${WHITE}Install Dropbear${NC}"
 	echo -e " ${BLUE}[10]${NC} ${ORANGE}•${NC} ${WHITE}Install WordPress${NC}"
 	echo -e " ${BLUE}[11]${NC} ${ORANGE}•${NC} ${WHITE}Fix Call (UDPGW)${NC}"
-	echo -e " ${BLUE}[12]${NC} ${ORANGE}•${NC} ${WHITE}Sing-box${NC}"
-        echo -e " ${BLUE}[13]${NC} ${ORANGE}•${NC} ${WHITE}Install BBR${NC}"
+	echo -e " ${BLUE}[12]${NC} ${ORANGE}•${NC} ${WHITE}Install BBR${NC}"
 	echo -e "$BLUE•────────────────────────────────────────────────────────────────┘${NC}"
 	echo -e "$BLUE┌─────────────────────────┐${NC}"
 	echo -e "$BLUE│$NC ${BLUE}[0]${NC} ${ORANGE}•${NC} ${RED}Exit${NC}$NC"
@@ -186,9 +185,7 @@ connect = 0.0.0.0:$sshport
         11)
         bash <(curl -Ls https://raw.githubusercontent.com/xpanel-cp/XPanel-SSH-User-Management/master/fix-call.sh --ipv4)
         ;; 
-        12)
-        bash <(curl -Ls https://raw.githubusercontent.com/xpanel-cp/XPanel-SSH-User-Management/master/OT/singbox.sh --ipv4)
-        ;;
+        
 	13)
         bash <(curl -Ls https://raw.githubusercontent.com/teddysun/across/master/bbr.sh --ipv4)
         ;;
