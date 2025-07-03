@@ -6,8 +6,7 @@ use App\Models\Admins;
 use App\Models\Settings;
 use App\Models\Traffic;
 use App\Models\Users;
-use App\Models\Singbox;
-use App\Models\Trafficsb;
+
 use App\Models\LogConnection;
 use App\Models\Xguard;
 use Illuminate\Http\Request;
@@ -33,49 +32,8 @@ class UserController extends Controller
         $data=base64_decode($data);
         return response(QrCode::size(300)->margin(5)->generate($data));
     }
-    public function singbox_generateQRCode(Request $request)
-    {
-        $data = $request->input('base64Data');
-        $data=base64_decode($data);
-        return response(QrCode::size(300)->margin(5)->generate($data));
-    }
-    public function search_sb(Request $request)
-    {
-
-
-        $keyword = $request->input('keyword');
-        $searchBy = $request->input('search_by');
-        $status = $request->input('status');
-        $protocol = $request->input('protocol');
-        $user = Auth::user();
-        $query = Singbox::orderBy('id', 'desc');
-
-        if ($keyword) {
-            $query->where(function ($query) use ($keyword, $searchBy) {
-                $query->where($searchBy, 'like', "%$keyword%");
-            });
-        }
-
-        if ($status !== null and $status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        if ($protocol !== null and $protocol !== 'all') {
-            $query->where('protocol_sb', $protocol);
-        }
-        if($user->permission!='admin')
-        {
-            $query->where('customer_user', $user->username);
-        }
-
-        $users = $query->paginate(25);
-
-        $websiteaddress = $_SERVER['HTTP_HOST'];
-        $address = parse_url($websiteaddress, PHP_URL_HOST);
-
-        $settings = Settings::all();
-        return view('users.singbox', compact('users','address'));
-    }
+    
+    
     public function search(Request $request)
     {
 
@@ -156,28 +114,7 @@ class UserController extends Controller
         $settings = Settings::all();
         return view('users.home', compact('users', 'settings','password_auto','websiteaddress','port_ssh','sshaddress','xguard_status'));
     }
-    public function sb_index()
-    {
-        $websiteaddress = $_SERVER['HTTP_HOST'];
-        $address = parse_url($websiteaddress, PHP_URL_HOST);
-        $user = Auth::user();
-        $password_auto = Str::random(8);
-        $detail_admin = Admins::where('username',$user->username)->first();
-        if($user->permission=='admin')
-        {
-            $users = Users::orderBy('id', 'desc')->paginate(25);
-        }
-        if($user->permission=='admin')
-        {
-            $users = Singbox::orderBy('id', 'desc')->paginate(25);
-
-        }
-        else{
-            $users = Singbox::where('customer_user', $user->username)->orderby('id', 'desc')->paginate(25);
-        }
-        $settings = Settings::all();
-        return view('users.singbox', compact('users','address','detail_admin'));
-    }
+    
     public function index()
     {
 
@@ -205,36 +142,7 @@ class UserController extends Controller
         $password_auto = Str::random(8);
         return view('users.create', compact('password_auto'));
     }
-    public function sb_newuser(Request $request)
-    {
-        $validatedData = $request->validate([
-            'name'=>'required|string',
-            'protocol'=>'required|string',
-            'email'=>'nullable|string',
-            'mobile'=>'nullable|string',
-            'multiuser'=>'required|numeric',
-            'connection_start'=>'nullable|numeric',
-            'traffic'=>'required|numeric',
-            'expdate'=>'nullable|string',
-            'type_traffic'=>'required|string',
-            'desc'=>'nullable|string',
-            'sni'=>'nullable|string'
-        ]);
-        if(env('APP_LOCALE', 'en') == 'fa') {
-            if (!empty($request->expdate)) {
-                $end_date = $this->persianToenglishNumbers($request->expdate);
-                $end_date = Verta::parse($end_date)->datetime()->format('Y-m-d');
-            } else {
-                $end_date = '';
-            }
-        } else {
-            $end_date = $request->expdate;
-        }
-
-        $validatedData['expdate'] = $end_date;
-        ProController::submit_singbox($validatedData);
-        return redirect()->intended(route('users.sb'));
-    }
+    
     public function newuser(Request $request)
     {
         $user = Auth::user();
@@ -461,58 +369,7 @@ class UserController extends Controller
         }
         return redirect()->intended(route('users'));
     }
-    public function activeuser_sb(Request $request,$port)
-    {
-        if (!is_numeric($port)) {
-            abort(400, 'Not Valid Username');
-        }
-        $user = Auth::user();
-        if($user->permission=='admin')
-        {
-            $check_user = Singbox::where('port_sb',$port)->count();
-            if ($check_user > 0) {
-                $user = Singbox::where('port_sb',$port)->first();
-                $jsonData = json_decode($user->detail_sb, true);
-                $sid=$jsonData['sid'];
-                $uuid=$jsonData['uuid'];
-                $protocol=$user->protocol_sb;
-                $name=$user->name;
-                $multiuser=$user->multiuser;
-                $validatedData = [
-                    'port'=>$port,
-                    'protocol'=>$protocol,
-                    'sid'=>$sid,
-                    'uuid'=>$uuid,
-                    'name'=>$name,
-                    'multiuser'=>$multiuser
-                ];
-
-                ProController::active_singbox($validatedData);
-            }
-        }
-        else{
-            $check_user = Singbox::where('port_sb', $port)->where('customer_user', $user->username)->count();
-            if ($check_user > 0) {
-                $user = Singbox::where('port_sb',$port)->first();
-                $jsonData = json_decode($user->detail_sb, true);
-                $sid=$jsonData['sid'];
-                $uuid=$jsonData['uuid'];
-                $protocol=$user->protocol_sb;
-                $name=$user->name;
-                $validatedData = [
-                    'port'=>$port,
-                    'protocol'=>$protocol,
-                    'sid'=>$sid,
-                    'uuid'=>$uuid,
-                    'name'=>$name
-                ];
-
-                ProController::active_singbox($validatedData);
-            }
-        }
-
-        return redirect()->back()->with('success', 'Activated');
-    }
+    
     public function activeuser(Request $request,$username)
     {
         if (!is_string($username)) {
@@ -581,36 +438,7 @@ class UserController extends Controller
 
         return redirect()->back()->with('success', 'Activated');
     }
-    public function deactiveuser_sb(Request $request,$port)
-    {
-        if (!is_numeric($port)) {
-            abort(400, 'Not Valid Username');
-        }
-        $user = Auth::user();
-        $activeUserCount = Users::where('status', 'active')->count();
-        if($user->permission=='admin') {
-            $check_user = Singbox::where('port_sb',$port)->count();
-            if ($check_user > 0) {
-                $validatedData = [
-                    'port'=>$port
-                ];
-
-                ProController::deactive_singbox($validatedData);
-            }
-        }
-        else{
-            $check_user = Singbox::where('port_sb', $port)->where('customer_user', $user->username)->count();
-            if ($check_user > 0) {
-                $validatedData = [
-                    'port'=>$port
-                ];
-
-                ProController::deactive_singbox($validatedData);
-            }
-        }
-        return redirect()->back()->with('success', 'Deactivated');
-
-    }
+    
     public function deactiveuser(Request $request,$username)
     {
         if (!is_string($username)) {
@@ -677,27 +505,7 @@ class UserController extends Controller
         return redirect()->back()->with('success', 'Deactivated');
 
     }
-    public function reset_traffic_sb(Request $request,$port)
-    {
-        if (!is_numeric($port)) {
-            abort(400, 'Not Valid Username');
-        }
-        $user = Auth::user();
-        if($user->permission=='admin') {
-            $check_user = Singbox::where('port_sb',$port)->count();
-            if ($check_user > 0) {
-                Trafficsb::where('port_sb', $port)->update(['sent_sb' => '0', 'received_sb' => '0', 'total_sb' => '0']);
-            }
-        }
-        else
-        {
-            $check_user = Singbox::where('port_sb', $port)->where('customer_user', $user->username)->count();
-            if ($check_user > 0) {
-                Trafficsb::where('port_sb', $port)->update(['sent_sb' => '0', 'received_sb' => '0', 'total_sb' => '0']);
-            }
-        }
-        return redirect()->back()->with('success', 'Reset Traffic');
-    }
+    
     public function reset_traffic(Request $request,$username)
     {
         if (!is_string($username)) {
@@ -726,52 +534,7 @@ class UserController extends Controller
         }
         return redirect()->back()->with('success', 'Reset Traffic');
     }
-    public function delete_sb(Request $request,$port)
-    {
-        if (!is_numeric($port)) {
-            abort(400, 'Not Valid Username');
-        }
-        $user = Auth::user();
-        $activeUserCount = Users::where('status', 'active')->count();
-        if($user->permission=='admin')
-        {
-            $check_user = Singbox::where('port_sb',$port)->count();
-            $status_user = Singbox::where('port_sb',$port)->get();
-            if ($check_user > 0) {
-                if($status_user[0]->status=='active') {
-                    $validatedData = [
-                        'port'=>$port
-                    ];
-
-                    ProController::delete_singbox($validatedData);
-                }
-                else
-                {
-                    Singbox::where('port_sb', $port)->delete();
-                    Trafficsb::where('port_sb', $port)->delete();
-                }
-            }
-        }
-        else {
-            $check_user = Singbox::where('port_sb', $port)->where('customer_user', $user->username)->count();
-            $status_user = Singbox::where('port_sb',$port)->get();
-            if ($check_user > 0) {
-                if($status_user[0]->status=='active') {
-                    $validatedData = [
-                        'port'=>$port
-                    ];
-
-                    ProController::delete_singbox($validatedData);
-                }
-                else
-                {
-                    Singbox::where('port_sb', $port)->delete();
-                    Trafficsb::where('port_sb', $port)->delete();
-                }
-            }
-        }
-        return redirect()->back()->with('success', 'Deleted');
-    }
+    
     public function delete(Request $request,$username)
     {
         if (!is_string($username)) {
@@ -1152,79 +915,7 @@ class UserController extends Controller
         Process::run("sudo service ssh restart");
         return redirect()->back()->with('success', 'Deleted');
     }
-    public function renewal_sb(Request $request)
-    {
-        $request->validate([
-            'username_re' => 'required|string',
-            'day_date' => 'required|numeric',
-            're_date' => 'required|string',
-            're_traffic' => 'required|string'
-        ]);
-        $newdate = date("Y-m-d");
-        $newdate = date('Y-m-d', strtotime($newdate . " + $request->day_date days"));
-        $user = Auth::user();
-        if($user->permission=='admin') {
-            $check_user = Singbox::where('port_sb', $request->username_re)->count();
-            if ($check_user > 0) {
-                $user = Singbox::where('port_sb',$request->username_re)->first();
-                $jsonData = json_decode($user->detail_sb, true);
-                $sid=$jsonData['sid'];
-                $uuid=$jsonData['uuid'];
-                $protocol=$user->protocol_sb;
-                $name=$user->name;
-                $multiuser=$user->multiuser;
-                $validatedData = [
-                    'port'=>$request->username_re,
-                    'protocol'=>$protocol,
-                    'sid'=>$sid,
-                    'uuid'=>$uuid,
-                    'name'=>$name,
-                    'newdate'=>$newdate,
-                    'multiuser'=>$multiuser
-                ];
-                ProController::renewal_singbox($validatedData);
-
-                if ($request->re_date == 'yes') {
-                    Singbox::where('port_sb', $request->username_re)->update(['start_date' => date("Y-m-d")]);
-                }
-                if ($request->re_traffic == 'yes') {
-                    Trafficsb::where('port_sb', $request->username_re)->update(['sent_sb' => '0', 'received_sb' => '0', 'total_sb' => '0']);
-
-                }
-            }
-        }
-        else
-        {
-            $check_user = Singbox::where('port_sb', $request->username_re)->where('customer_user', $user->username)->count();
-            if ($check_user > 0) {
-                $user = Singbox::where('port_sb',$request->username_re)->first();
-                $jsonData = json_decode($user->detail_sb, true);
-                $sid=$jsonData['sid'];
-                $uuid=$jsonData['uuid'];
-                $protocol=$user->protocol_sb;
-                $name=$user->name;
-                $validatedData = [
-                    'port'=>$request->username_re,
-                    'protocol'=>$protocol,
-                    'sid'=>$sid,
-                    'uuid'=>$uuid,
-                    'name'=>$name,
-                    'newdate'=>$newdate
-                ];
-                ProController::renewal_singbox($validatedData);
-                if ($request->re_date == 'yes') {
-                    Singbox::where('port_sb', $request->username_re)->update(['start_date' => date("Y-m-d")]);
-
-                }
-                if ($request->re_traffic == 'yes') {
-                    Trafficsb::where('port_sb', $request->username_re)->update(['sent_sb' => '0', 'received_sb' => '0', 'total_sb' => '0']);
-
-                }
-            }
-        }
-
-        return redirect()->back()->with('success', 'Renewal Success');
-    }
+    
     public function renewal(Request $request)
     {
         $request->validate([
@@ -1315,60 +1006,7 @@ class UserController extends Controller
 
         return redirect()->back()->with('success', 'Renewal Success');
     }
-    public function edit_sb(Request $request,$port)
-    {
-        if (!is_numeric($port)) {
-            abort(400, 'Not Valid Username');
-        }
-        $user = Auth::user();
-        if($user->permission=='admin') {
-            $check_user = Singbox::where('port_sb', $port)->count();
-            if ($check_user > 0) {
-                $user = Singbox::where('port_sb', $port)->get();
-                $show = $user[0];
-                if(env('APP_LOCALE', 'en')=='fa')
-                {
-                    if(!empty($show->end_date)){$end_date=Verta::instance($show->end_date)->format('Y-m-d');
-                        $end_date=$this->englishToPersianNumbers($end_date);}
-                    else
-                    {
-                        $end_date=''  ;
-                    }
-                }
-                else
-                {
-                    $end_date= $show->end_date;
-                }
-                return view('users.editsb', compact('show','end_date'));
-            } else {
-                return redirect()->back()->with('success', 'Not User');
-            }
-        }
-        else{
-            $check_user = Singbox::where('port_sb', $port)->where('customer_user', $user->username)->count();
-            if ($check_user > 0) {
-                $user = Singbox::where('port_sb', $port)->get();
-                $show = $user[0];
-                if(env('APP_LOCALE', 'en')=='fa')
-                {
-                    if(!empty($show->end_date)){$end_date=Verta::instance($show->end_date)->format('Y-m-d');
-                        $end_date=$this->englishToPersianNumbers($end_date);}
-                    else
-                    {
-                        $end_date=''  ;
-                    }
-                }
-                else
-                {
-                    $end_date= $show->end_date;
-                }
-                return view('users.editsb', compact('show','end_date'));
-            } else {
-                return redirect()->back()->with('success', 'Not User');
-            }
-        }
-
-    }
+    
     public function edit(Request $request,$username)
     {
         if (!is_string($username)) {
@@ -1423,123 +1061,7 @@ class UserController extends Controller
         }
 
     }
-    public function update_sb(Request $request)
-    {
-        $request->validate([
-            'port'=>'required|string',
-            'email'=>'nullable|string',
-            'mobile'=>'nullable|string',
-            'multiuser'=>'required|numeric',
-            'traffic'=>'required|numeric',
-            'expdate'=>'nullable|string',
-            'type_traffic'=>'required|string',
-            'activate'=>'required|string',
-            'desc'=>'nullable|string',
-            'sni'=>'nullable|string'
-        ]);
-        if ($request->type_traffic == "gb") {
-            $traffic = $request->traffic * 1024;
-        } else {
-            $traffic = $request->traffic;
-        }
-        if(env('APP_LOCALE', 'en')=='fa') {
-            if (!empty($request->expdate)) {
-                $end_date=$this->persianToenglishNumbers($request->expdate);
-                $end_date = Verta::parse($end_date)->datetime()->format('Y-m-d');
-            } else {
-                $end_date = '';
-            }
-        }
-        else
-        {
-            $end_date= $request->expdate;
-        }
-        $user = Auth::user();
-        if($user->permission=='admin') {
-            $check_user = Singbox::where('port_sb', $request->port)->count();
-            if ($check_user > 0) {
-                Singbox::where('port_sb', $request->port)->update([
-                    'email' => $request->email,
-                    'mobile' => $request->mobile,
-                    'multiuser' => $request->multiuser,
-                    'traffic' => $traffic,
-                    'end_date' => $end_date,
-                    'status' => $request->activate,
-                    'desc' => $request->desc,
-                    'sni' => $request->sni
-                ]);
-                if ($request->activate == "active") {
-                    $user = Singbox::where('port_sb',$request->port)->first();
-                    $jsonData = json_decode($user->detail_sb, true);
-                    $sid=$jsonData['sid'];
-                    $uuid=$jsonData['uuid'];
-                    $protocol=$user->protocol_sb;
-                    $name=$user->name;
-                    $multiuser=$user->multiuser;
-                    $validatedData = [
-                        'port'=>$request->port,
-                        'protocol'=>$protocol,
-                        'sid'=>$sid,
-                        'uuid'=>$uuid,
-                        'name'=>$name,
-                        'multiuser'=>$multiuser
-                    ];
-
-                    ProController::active_singbox($validatedData);
-                }
-                else {
-                    $validatedData = [
-                        'port'=>$request->port
-                    ];
-
-                    ProController::deactive_singbox($validatedData);
-                }
-
-            }
-        }
-        else
-        {
-            $check_user = Singbox::where('port_sb', $request->port)->where('customer_user', $user->username)->count();
-            if ($check_user > 0) {
-                Singbox::where('port_sb', $request->port)
-                    ->update([
-                        'email' => $request->email,
-                        'mobile' => $request->mobile,
-                        'multiuser' => $request->multiuser,
-                        'traffic' => $traffic,
-                        'end_date' => $end_date,
-                        'status' => $request->activate,
-                        'desc' => $request->desc,
-                        'sni' => $request->sni
-                    ]);
-                if ($request->activate == "active") {
-                    $user = Singbox::where('port_sb',$request->port)->first();
-                    $jsonData = json_decode($user->detail_sb, true);
-                    $sid=$jsonData['sid'];
-                    $uuid=$jsonData['uuid'];
-                    $protocol=$user->protocol_sb;
-                    $name=$user->name;
-                    $validatedData = [
-                        'port'=>$request->port,
-                        'protocol'=>$protocol,
-                        'sid'=>$sid,
-                        'uuid'=>$uuid,
-                        'name'=>$name
-                    ];
-
-                    ProController::active_singbox($validatedData);
-                }
-                else {
-                    $validatedData = [
-                        'port'=>$request->port
-                    ];
-
-                    ProController::deactive_singbox($validatedData);
-                }
-            }
-        }
-        return redirect()->back()->with('success', 'Update Success');
-    }
+    
     public function update(Request $request)
     {
         $request->validate([
@@ -1670,16 +1192,7 @@ class UserController extends Controller
         DB::table('users')->truncate();
         DB::table('traffic')->truncate();
 
-        $users_sb = Singbox::all();
-        foreach ($users_sb as $user) {
-            $validatedData = [
-                'port'=>$user->port_sb
-            ];
-
-            ProController::delete_singbox($validatedData);
-        }
-        DB::table('singboxes')->truncate();
-        DB::table('trafficsbs')->truncate();
+        
         return redirect()->intended(route('settings', ['name' => 'general']))->with('alert', __('allert-success'));
 
     }

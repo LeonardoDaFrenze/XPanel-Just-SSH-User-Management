@@ -308,10 +308,7 @@
     "setting-user-all-remove": "Удалить всех пользователей",
     "setting-user-all-fixed": "Після імпорту налаштування всіх користувачів",
     "user-pop-bulkuser-submit": "Додати користувачів",
-    "singbox-name": "Имя",
-    "singbox-name-desc": "Введите имя для подписки",
-    "singbox-protocol-desc": "Выберите тип протокола",
-    "singbox-protocol-copy": "Скопировать ссылку",
+    
     "alert-update": "Вышла новая версия XPanel. Вы можете обновиться.",
     "manager-count-account": "Разрешенное количество подписок",
     "manager-detail": "Оставьте пустым, чтобы указать отсутствие ограничения",

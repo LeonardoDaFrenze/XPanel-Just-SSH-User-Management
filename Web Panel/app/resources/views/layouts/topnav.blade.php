@@ -64,12 +64,7 @@
                                 <span class="pc-mtext">SSH</span>
                             </a>
                         </li>
-                        <li class="pc-item">
-                            <a href="{{route('users.sb')}}" class="pc-link">
-                                <span class="pc-micon"><i class="ti ti-shield-lock"></i></span>
-                                <span class="pc-mtext">SING-BOX</span>
-                            </a>
-                        </li>
+                        
                     </ul>
                 </li>
 
